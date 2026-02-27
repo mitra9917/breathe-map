@@ -1,10 +1,8 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
 import '../styles/globals.css'
-
-const _geist = Geist({ subsets: ['latin'] })
-const _geistMono = Geist_Mono({ subsets: ['latin'] })
+import { CityProvider } from '@/context/CityContext'
+import { ToasterProvider } from '@/components/toaster-provider'
 
 export const metadata: Metadata = {
   title: 'Breathe Map | Air Quality Simulation & Analysis',
@@ -28,8 +26,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="font-sans antialiased bg-background text-foreground flex flex-col min-h-screen">
-        <div className="flex-1">{children}</div>
-        {/* Footer will be added dynamically by pages or as a wrapper */}
+        <CityProvider>
+          <div className="flex-1">{children}</div>
+          <ToasterProvider />
+          {/* Footer will be added dynamically by pages or as a wrapper */}
+        </CityProvider>
       </body>
     </html>
   )

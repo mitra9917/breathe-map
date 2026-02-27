@@ -5,6 +5,7 @@ import { NavBar } from '@/components/nav-bar'
 import { DisclaimerBanner } from '@/components/disclaimer-banner'
 import { FooterDisclaimer } from '@/components/footer-disclaimer'
 import { ZoneCluster, AQICorrelation } from '@/lib/types'
+import { useCity } from '@/context/CityContext'
 
 // Animated correlation bar row
 function CorrelationRow({ correlation, index }: { correlation: AQICorrelation; index: number }) {
@@ -90,9 +91,9 @@ function ClusterCard({ cluster, zoneLookup, index }: { cluster: ZoneCluster; zon
   const [hovered, setHovered] = useState(false)
 
   const aqiColor =
-    cluster.average_aqi <= 50  ? '#34d399' :
-    cluster.average_aqi <= 100 ? '#fbbf24' :
-    cluster.average_aqi <= 150 ? '#f97316' : '#f87171'
+    cluster.average_aqi <= 50 ? '#34d399' :
+      cluster.average_aqi <= 100 ? '#fbbf24' :
+        cluster.average_aqi <= 150 ? '#f97316' : '#f87171'
 
   const clusterColors = ['#818cf8', '#34d399', '#fbbf24', '#f97316']
   const accent = clusterColors[index % clusterColors.length]
@@ -205,6 +206,7 @@ function MethodologyCard({ icon, color, title, desc }: { icon: React.ReactNode; 
 }
 
 export default function AnalysisPage() {
+  const { currentCityId } = useCity()
   const [correlations, setCorrelations] = useState<AQICorrelation[]>([])
   const [clusters, setClusters] = useState<ZoneCluster[]>([])
   const [zoneLookup, setZoneLookup] = useState<Record<string, string>>({})
@@ -215,8 +217,8 @@ export default function AnalysisPage() {
     const loadAnalysis = async () => {
       try {
         const [correlationRes, clusterRes] = await Promise.all([
-          fetch('/api/analysis/correlations', { cache: 'no-store' }),
-          fetch('/api/analysis/clusters', { cache: 'no-store' }),
+          fetch(`/api/analysis/correlations?cityId=${currentCityId}`, { cache: 'no-store' }),
+          fetch(`/api/analysis/clusters?cityId=${currentCityId}`, { cache: 'no-store' }),
         ])
 
         const correlationData = await correlationRes.json()
@@ -234,7 +236,7 @@ export default function AnalysisPage() {
     }
 
     void loadAnalysis()
-  }, [])
+  }, [currentCityId])
 
   if (isLoading) {
     return (
@@ -248,7 +250,7 @@ export default function AnalysisPage() {
   }
 
   const positiveCount = correlations.filter((c) => c.correlation_coefficient > 0).length
-  const strongCount   = correlations.filter((c) => Math.abs(c.correlation_coefficient) >= 0.7).length
+  const strongCount = correlations.filter((c) => Math.abs(c.correlation_coefficient) >= 0.7).length
 
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col">
@@ -291,9 +293,9 @@ export default function AnalysisPage() {
           className="grid grid-cols-3 gap-3 mb-12"
         >
           {[
-            { label: 'Factors Analyzed',     value: correlations.length, color: '#818cf8' },
-            { label: 'Positive Correlations', value: positiveCount,       color: '#f97316' },
-            { label: 'Strong Signals',         value: strongCount,         color: '#34d399' },
+            { label: 'Factors Analyzed', value: correlations.length, color: '#818cf8' },
+            { label: 'Positive Correlations', value: positiveCount, color: '#f97316' },
+            { label: 'Strong Signals', value: strongCount, color: '#34d399' },
           ].map((s, i) => (
             <div
               key={i}
@@ -349,7 +351,7 @@ export default function AnalysisPage() {
           >
             <h4 className="text-sm font-semibold text-indigo-300 mb-2 flex items-center gap-2">
               <svg width="14" height="14" fill="none" stroke="#818cf8" strokeWidth="2" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01" strokeLinecap="round"/>
+                <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" strokeLinecap="round" />
               </svg>
               Interpretation Guide
             </h4>
@@ -426,8 +428,8 @@ export default function AnalysisPage() {
               desc="Correlations are computed from persisted zone data using theoretical relationships between factors and air quality."
               icon={
                 <svg width="16" height="16" fill="none" stroke="#818cf8" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M3 3v18h18" strokeLinecap="round"/>
-                  <path d="M7 16l4-4 4 4 4-7" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3 3v18h18" strokeLinecap="round" />
+                  <path d="M7 16l4-4 4 4 4-7" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               }
             />
@@ -437,7 +439,7 @@ export default function AnalysisPage() {
               desc="Zones are grouped using land-use type and estimated AQI ranges as similarity metrics."
               icon={
                 <svg width="16" height="16" fill="none" stroke="#34d399" strokeWidth="2" viewBox="0 0 24 24">
-                  <circle cx="9" cy="7" r="4"/><circle cx="17" cy="14" r="3"/><circle cx="6" cy="17" r="2.5"/>
+                  <circle cx="9" cy="7" r="4" /><circle cx="17" cy="14" r="3" /><circle cx="6" cy="17" r="2.5" />
                 </svg>
               }
             />
@@ -447,9 +449,9 @@ export default function AnalysisPage() {
               desc="Analyses use persisted zone data fetched from the backend API at runtime, not static mock values."
               icon={
                 <svg width="16" height="16" fill="none" stroke="#60a5fa" strokeWidth="2" viewBox="0 0 24 24">
-                  <ellipse cx="12" cy="5" rx="9" ry="3"/>
-                  <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/>
-                  <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>
+                  <ellipse cx="12" cy="5" rx="9" ry="3" />
+                  <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
+                  <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3" />
                 </svg>
               }
             />
@@ -459,9 +461,9 @@ export default function AnalysisPage() {
               desc="Results are exploratory and not suitable for policy or regulatory decisions. Always validate with real-world data."
               icon={
                 <svg width="16" height="16" fill="none" stroke="#fbbf24" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                  <line x1="12" y1="9" x2="12" y2="13"/>
-                  <line x1="12" y1="17" x2="12.01" y2="17" strokeLinecap="round"/>
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" strokeLinecap="round" />
                 </svg>
               }
             />

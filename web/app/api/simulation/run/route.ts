@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SimulationResult } from '@/lib/types'
 import { calculateMockAQI, simulateReduction } from '@/lib/mock-data'
 import { getZoneById } from '@/lib/db/repository'
-import { getSupabaseServerClient } from '@/lib/supabase/server'
 
 /**
  * POST /api/simulation/run
@@ -133,35 +132,7 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     }
 
-    const supabase = getSupabaseServerClient()
-    const { data: scenario, error: scenarioError } = await supabase
-      .from('simulation_scenarios')
-      .insert({
-        zone_id: zone.id,
-        name: scenario_name?.trim() || `Scenario ${new Date().toLocaleString('en-US')}`,
-        vehicle_reduction_percentage,
-        green_cover_increase,
-        traffic_rerouting_factor,
-      })
-      .select('id')
-      .single()
-
-    if (scenarioError) throw scenarioError
-
-    const { error: resultError } = await supabase.from('simulation_results').insert({
-      scenario_id: scenario.id,
-      zone_id: zone.id,
-      before_aqi: result.before_aqi,
-      after_aqi: result.after_aqi,
-      delta: result.delta,
-      delta_percentage: result.delta_percentage,
-      explanation: result.explanation,
-      recommendation: result.recommendation,
-    })
-
-    if (resultError) throw resultError
-
-    result.scenario_id = scenario.id
+    result.scenario_id = `scenario-${Date.now()}`
 
     return NextResponse.json(result)
   } catch (error) {

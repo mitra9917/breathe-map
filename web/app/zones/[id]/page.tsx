@@ -9,6 +9,7 @@ import { FooterDisclaimer } from '@/components/footer-disclaimer'
 import { AQIBadge } from '@/components/aqi-badge'
 import { Zone, AQIEstimate } from '@/lib/types'
 import { formatDate } from '@/lib/utils'
+import { useCity } from '@/context/CityContext'
 
 // Animated contribution bar
 function ContributionBar({
@@ -101,22 +102,23 @@ function MetricCard({ label, value, unit, icon, color, delay }: {
 }
 
 const AQI_CATEGORIES = [
-  { range: '0–50',    label: 'Good',     desc: 'Satisfactory air quality',   color: '#34d399' },
-  { range: '51–100',  label: 'Moderate', desc: 'Acceptable quality',          color: '#fbbf24' },
-  { range: '101–150', label: 'Poor',     desc: 'Sensitive groups affected',   color: '#f97316' },
-  { range: '>150',    label: 'Severe',   desc: 'General population affected', color: '#f87171' },
+  { range: '0–50', label: 'Good', desc: 'Satisfactory air quality', color: '#34d399' },
+  { range: '51–100', label: 'Moderate', desc: 'Acceptable quality', color: '#fbbf24' },
+  { range: '101–150', label: 'Poor', desc: 'Sensitive groups affected', color: '#f97316' },
+  { range: '>150', label: 'Severe', desc: 'General population affected', color: '#f87171' },
 ]
 
 const CONTRIBUTIONS = [
-  { key: 'traffic',      icon: '🚗', label: 'Traffic Impact',      weight: '40%', color: '#f97316' },
-  { key: 'population',   icon: '👥', label: 'Population Impact',   weight: '20%', color: '#818cf8' },
+  { key: 'traffic', icon: '🚗', label: 'Traffic Impact', weight: '40%', color: '#f97316' },
+  { key: 'population', icon: '👥', label: 'Population Impact', weight: '20%', color: '#818cf8' },
   { key: 'road_network', icon: '🛣️', label: 'Road Network Impact', weight: '20%', color: '#60a5fa' },
-  { key: 'land_use',     icon: '🏗️', label: 'Land Use Impact',     weight: '20%', color: '#34d399' },
+  { key: 'land_use', icon: '🏗️', label: 'Land Use Impact', weight: '20%', color: '#34d399' },
 ]
 
 export default function ZoneDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const { currentCityId } = useCity()
   const [zone, setZone] = useState<Zone | null>(null)
   const [estimate, setEstimate] = useState<AQIEstimate | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -126,7 +128,7 @@ export default function ZoneDetailPage() {
     const zoneId = params.id as string
     const loadZone = async () => {
       try {
-        const response = await fetch(`/api/zones/${zoneId}`, { cache: 'no-store' })
+        const response = await fetch(`/api/zones/${zoneId}?cityId=${currentCityId}`, { cache: 'no-store' })
         if (!response.ok) {
           setIsLoading(false)
           setMounted(true)
@@ -144,7 +146,7 @@ export default function ZoneDetailPage() {
     }
 
     void loadZone()
-  }, [params.id])
+  }, [params.id, currentCityId])
 
   if (isLoading) {
     return (
@@ -165,7 +167,7 @@ export default function ZoneDetailPage() {
         <main className="flex-1 flex flex-col items-center justify-center gap-5 px-4">
           <div className="w-14 h-14 rounded-2xl bg-zinc-800/60 border border-zinc-700/50 flex items-center justify-center">
             <svg width="24" height="24" fill="none" stroke="#52525b" strokeWidth="1.8" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01" strokeLinecap="round"/>
+              <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" strokeLinecap="round" />
             </svg>
           </div>
           <p className="text-zinc-400 font-medium">Zone not found</p>
@@ -182,9 +184,9 @@ export default function ZoneDetailPage() {
   }
 
   const aqiColor =
-    estimate.estimated_aqi <= 50  ? '#34d399' :
-    estimate.estimated_aqi <= 100 ? '#fbbf24' :
-    estimate.estimated_aqi <= 150 ? '#f97316' : '#f87171'
+    estimate.estimated_aqi <= 50 ? '#34d399' :
+      estimate.estimated_aqi <= 100 ? '#fbbf24' :
+        estimate.estimated_aqi <= 150 ? '#f97316' : '#f87171'
 
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col">
@@ -210,7 +212,7 @@ export default function ZoneDetailPage() {
         >
           <Link href="/zones" className="hover:text-zinc-400 transition-colors duration-150">Zones</Link>
           <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <span className="text-zinc-500 truncate max-w-[200px]">{zone.name}</span>
         </div>
@@ -272,9 +274,9 @@ export default function ZoneDetailPage() {
                 <div className="h-px flex-1 bg-gradient-to-r from-zinc-700/50 to-transparent" />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <MetricCard label="Traffic Density" value={zone.traffic_density}   unit="%"  icon="🚗" color="#f97316" delay={0} />
-                <MetricCard label="Population"      value={zone.population_density} unit="%"  icon="👥" color="#818cf8" delay={60} />
-                <MetricCard label="Road Network"    value={zone.road_length}        unit="km" icon="🛣️" color="#60a5fa" delay={120} />
+                <MetricCard label="Traffic Density" value={zone.traffic_density} unit="%" icon="🚗" color="#f97316" delay={0} />
+                <MetricCard label="Population" value={zone.population_density} unit="%" icon="👥" color="#818cf8" delay={60} />
+                <MetricCard label="Road Network" value={zone.road_length} unit="km" icon="🛣️" color="#60a5fa" delay={120} />
                 <MetricCard
                   label="Land Use" icon="🏗️" color="#34d399" delay={180}
                   value={zone.land_use_type.replace('_', ' ')}
@@ -353,8 +355,8 @@ export default function ZoneDetailPage() {
                 style={{ boxShadow: '0 0 16px rgba(52,211,153,0.2)' }}
               >
                 <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" strokeLinecap="round"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" strokeLinejoin="round"/>
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" strokeLinecap="round" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" strokeLinejoin="round" />
                 </svg>
                 Edit Zone
               </Link>
@@ -363,7 +365,7 @@ export default function ZoneDetailPage() {
                 className="flex items-center justify-center gap-2 w-full py-3 border border-zinc-700/50 text-zinc-300 font-semibold rounded-xl text-sm hover:border-zinc-600 hover:text-zinc-200 transition-all duration-150"
               >
                 <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 Simulate Impact
               </Link>
@@ -376,7 +378,7 @@ export default function ZoneDetailPage() {
             >
               <h4 className="text-sm font-semibold text-zinc-300 mb-4 flex items-center gap-2">
                 <svg width="13" height="13" fill="none" stroke="#34d399" strokeWidth="2" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01" strokeLinecap="round"/>
+                  <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" strokeLinecap="round" />
                 </svg>
                 AQI Categories
               </h4>

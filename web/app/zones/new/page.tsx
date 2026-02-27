@@ -7,9 +7,13 @@ import { NavBar } from '@/components/nav-bar'
 import { DisclaimerBanner } from '@/components/disclaimer-banner'
 import { ZoneForm } from '@/components/zone-form'
 import { Zone } from '@/lib/types'
+import { useCity } from '@/context/CityContext'
+import { toastError } from '@/lib/toast'
+import { ErrorCodes } from '@/lib/errorCodes'
 
 export default function NewZonePage() {
   const router = useRouter()
+  const { currentCityId } = useCity()
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (formData: Omit<Zone, 'id' | 'created_at'>) => {
@@ -18,7 +22,7 @@ export default function NewZonePage() {
       const response = await fetch('/api/zones', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, cityId: currentCityId }),
       })
 
       if (!response.ok) {
@@ -28,7 +32,7 @@ export default function NewZonePage() {
       router.push('/zones')
     } catch (error) {
       console.error('Error creating zone:', error)
-      alert('Failed to create zone')
+      toastError(ErrorCodes.ZONE_CREATE_FAILED.message, ErrorCodes.ZONE_CREATE_FAILED.code)
     } finally {
       setIsLoading(false)
     }
@@ -58,7 +62,7 @@ export default function NewZonePage() {
         >
           <Link href="/zones" className="hover:text-zinc-400 transition-colors duration-150">Zones</Link>
           <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <span className="text-zinc-500">New Zone</span>
         </div>
@@ -93,7 +97,7 @@ export default function NewZonePage() {
               style={{ background: 'linear-gradient(135deg, #059669, #34d399)', boxShadow: '0 0 12px rgba(52,211,153,0.2)' }}
             >
               <svg width="14" height="14" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path d="M12 5v14M5 12h14" strokeLinecap="round"/>
+                <path d="M12 5v14M5 12h14" strokeLinecap="round" />
               </svg>
             </div>
             <div>
@@ -115,9 +119,9 @@ export default function NewZonePage() {
           className="mt-5 flex items-start gap-2.5 px-4 py-3 rounded-xl border border-amber-800/25 bg-amber-950/15"
         >
           <svg width="14" height="14" fill="none" stroke="#fbbf24" strokeWidth="2" viewBox="0 0 24 24" className="flex-shrink-0 mt-0.5">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/>
-            <line x1="12" y1="17" x2="12.01" y2="17" strokeLinecap="round"/>
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" strokeLinecap="round" />
           </svg>
           <p className="text-xs text-zinc-500 leading-relaxed">
             Zone parameters are used to estimate AQI via the deterministic model — not real sensor readings. The zone will be persisted via the API.

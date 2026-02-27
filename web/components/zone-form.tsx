@@ -3,6 +3,7 @@
 import React from "react"
 import { useState } from 'react'
 import { Zone, LandUseType } from '@/lib/types'
+import { Home, Building2, Factory, Trees, Layers } from 'lucide-react'
 
 interface ZoneFormProps {
   initialZone?: Zone
@@ -53,12 +54,12 @@ function FormSlider({
   )
 }
 
-const LAND_USE_OPTIONS: { value: LandUseType; label: string; icon: string }[] = [
-  { value: 'residential', label: 'Residential', icon: '🏘️' },
-  { value: 'commercial',  label: 'Commercial',  icon: '🏢' },
-  { value: 'industrial',  label: 'Industrial',  icon: '🏭' },
-  { value: 'green_space', label: 'Green Space', icon: '🌳' },
-  { value: 'mixed',       label: 'Mixed Use',   icon: '🏙️' },
+const LAND_USE_OPTIONS: { value: LandUseType; label: string; icon: React.ReactNode }[] = [
+  { value: 'residential', label: 'Residential', icon: <Home size={14} /> },
+  { value: 'commercial', label: 'Commercial', icon: <Building2 size={14} /> },
+  { value: 'industrial', label: 'Industrial', icon: <Factory size={14} /> },
+  { value: 'green_space', label: 'Green Space', icon: <Trees size={14} /> },
+  { value: 'mixed', label: 'Mixed Use', icon: <Layers size={14} /> },
 ]
 
 export function ZoneForm({ initialZone, onSubmit, onCancel, isLoading }: ZoneFormProps) {
@@ -252,9 +253,9 @@ export function ZoneForm({ initialZone, onSubmit, onCancel, isLoading }: ZoneFor
             ) : (
               <>
                 <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" strokeLinejoin="round"/>
-                  <polyline points="17 21 17 13 7 13 7 21" strokeLinejoin="round"/>
-                  <polyline points="7 3 7 8 15 8" strokeLinejoin="round"/>
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" strokeLinejoin="round" />
+                  <polyline points="17 21 17 13 7 13 7 21" strokeLinejoin="round" />
+                  <polyline points="7 3 7 8 15 8" strokeLinejoin="round" />
                 </svg>
                 Save Zone
               </>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getLatestAQIForZone, getZoneById } from '@/lib/db/repository'
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db/adapter'
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -22,10 +22,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
-    const supabase = getSupabaseServerClient()
-    const { error } = await supabase.from('zones').delete().eq('id', id)
-
-    if (error) throw error
+    await db.zones.delete(id)
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -38,16 +35,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     const { id } = await params
     const updates = await request.json()
-    const supabase = getSupabaseServerClient()
-
-    const { data, error } = await supabase
-      .from('zones')
-      .update(updates)
-      .eq('id', id)
-      .select('*')
-      .single()
-
-    if (error) throw error
+    const data = await db.zones.update(id, updates)
 
     return NextResponse.json({ zone: data })
   } catch (error) {
