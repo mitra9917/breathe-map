@@ -75,13 +75,15 @@ export async function POST(request: NextRequest) {
     const beforeAQI = calculateMockAQI(zone)
 
     // Simulate reduction
-    const afterAQI = simulateReduction(
+    const simulatedAfterAQI = simulateReduction(
       beforeAQI,
       vehicle_reduction_percentage,
       green_cover_increase,
       traffic_rerouting_factor
     )
 
+    // Persist integer AQI metrics to match DB column types.
+    const afterAQI = Math.round(simulatedAfterAQI)
     const delta = beforeAQI - afterAQI
     const deltaPercentage = (delta / beforeAQI) * 100
 
