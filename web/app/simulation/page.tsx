@@ -8,6 +8,9 @@ import { FooterDisclaimer } from '@/components/footer-disclaimer'
 import { AQIBadge } from '@/components/aqi-badge'
 import { Zone, SimulationResult } from '@/lib/types'
 import { formatPercentChange } from '@/lib/utils'
+import { useCity } from '@/context/CityContext'
+import { toastError } from '@/lib/toast'
+import { ErrorCodes } from '@/lib/errorCodes'
 
 // Styled range slider
 function SliderControl({
@@ -118,9 +121,8 @@ function DeltaPill({ delta, pct }: { delta: number; pct: number }) {
         transform: visible ? 'scale(1)' : 'scale(0.8)',
         transition: 'opacity 0.4s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1)',
       }}
-      className={`flex flex-col items-center justify-center rounded-2xl border p-5 ${
-        improved ? 'border-emerald-700/40 bg-emerald-950/40' : 'border-zinc-700/40 bg-zinc-900/40'
-      }`}
+      className={`flex flex-col items-center justify-center rounded-2xl border p-5 ${improved ? 'border-emerald-700/40 bg-emerald-950/40' : 'border-zinc-700/40 bg-zinc-900/40'
+        }`}
     >
       <div className={`text-3xl font-bold tabular-nums ${improved ? 'text-emerald-400' : 'text-zinc-400'}`}>
         {improved ? '−' : '+'}{Math.abs(delta).toFixed(2)}
@@ -164,6 +166,7 @@ const aqiColor = (v: number) =>
   v <= 50 ? '#34d399' : v <= 100 ? '#fbbf24' : v <= 150 ? '#f97316' : '#f87171'
 
 export default function SimulationPage() {
+  const { currentCityId } = useCity()
   const [zones, setZones] = useState<Zone[]>([])
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null)
   const [vehicleReduction, setVehicleReduction] = useState(0)
@@ -177,7 +180,7 @@ export default function SimulationPage() {
   useEffect(() => {
     const loadZones = async () => {
       try {
-        const response = await fetch('/api/zones', { cache: 'no-store' })
+        const response = await fetch(`/api/zones?cityId=${currentCityId}`, { cache: 'no-store' })
         const data = await response.json()
         const loadedZones = (data.zones ?? []) as Zone[]
         setZones(loadedZones)
@@ -193,7 +196,7 @@ export default function SimulationPage() {
     }
 
     void loadZones()
-  }, [])
+  }, [currentCityId])
 
   const handleSimulate = async () => {
     if (!selectedZone) return
@@ -204,6 +207,7 @@ export default function SimulationPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           zone_id: selectedZone.id,
+          cityId: currentCityId,
           scenario_name: `Simulation for ${selectedZone.name}`,
           vehicle_reduction_percentage: vehicleReduction,
           green_cover_increase: greenIncrease,
@@ -214,7 +218,7 @@ export default function SimulationPage() {
       setResult(data)
     } catch (error) {
       console.error('Simulation error:', error)
-      alert('Failed to run simulation')
+      toastError(ErrorCodes.SIMULATION_RUN_FAILED.message, ErrorCodes.SIMULATION_RUN_FAILED.code)
     } finally {
       setIsLoading(false)
     }
@@ -248,8 +252,8 @@ export default function SimulationPage() {
         <main className="flex-1 flex flex-col items-center justify-center gap-5 px-4 text-center">
           <div className="w-14 h-14 rounded-2xl bg-zinc-800/60 border border-zinc-700/50 flex items-center justify-center">
             <svg width="24" height="24" fill="none" stroke="#52525b" strokeWidth="1.8" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              <circle cx="12" cy="12" r="10" />
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
             </svg>
           </div>
           <div>
@@ -262,7 +266,7 @@ export default function SimulationPage() {
             style={{ boxShadow: '0 0 16px rgba(52,211,153,0.2)' }}
           >
             <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path d="M12 5v14M5 12h14" strokeLinecap="round"/>
+              <path d="M12 5v14M5 12h14" strokeLinecap="round" />
             </svg>
             Create Zone
           </Link>
@@ -476,7 +480,7 @@ export default function SimulationPage() {
                 <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/50 p-5">
                   <h3 className="text-sm font-semibold text-zinc-300 mb-3 flex items-center gap-2">
                     <svg width="14" height="14" fill="none" stroke="#34d399" strokeWidth="2" viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01" strokeLinecap="round"/>
+                      <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" strokeLinecap="round" />
                     </svg>
                     How We Got Here
                   </h3>
@@ -487,7 +491,7 @@ export default function SimulationPage() {
                 <div className="rounded-2xl border border-indigo-800/30 bg-indigo-950/20 p-5">
                   <h3 className="text-sm font-semibold text-zinc-300 mb-2 flex items-center gap-2">
                     <svg width="14" height="14" fill="none" stroke="#818cf8" strokeWidth="2" viewBox="0 0 24 24">
-                      <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm0 6v4l3 3" strokeLinecap="round"/>
+                      <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm0 6v4l3 3" strokeLinecap="round" />
                     </svg>
                     Assessment
                   </h3>
@@ -498,9 +502,9 @@ export default function SimulationPage() {
                 <div className="rounded-2xl border border-amber-800/30 bg-amber-950/20 p-5">
                   <h4 className="text-sm font-semibold text-amber-300 mb-3 flex items-center gap-2">
                     <svg width="14" height="14" fill="none" stroke="#fbbf24" strokeWidth="2" viewBox="0 0 24 24">
-                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                      <line x1="12" y1="9" x2="12" y2="13"/>
-                      <line x1="12" y1="17" x2="12.01" y2="17" strokeLinecap="round"/>
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" strokeLinecap="round" />
                     </svg>
                     Important Limitations
                   </h4>
@@ -527,7 +531,7 @@ export default function SimulationPage() {
               >
                 <div className="w-14 h-14 rounded-2xl bg-zinc-800/60 border border-zinc-700/50 flex items-center justify-center mb-5">
                   <svg width="24" height="24" fill="none" stroke="#34d399" strokeWidth="1.8" viewBox="0 0 24 24">
-                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
                 <p className="text-zinc-200 font-semibold text-lg mb-2">Configure parameters to begin</p>

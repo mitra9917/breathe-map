@@ -7,13 +7,15 @@ import { DisclaimerBanner } from '@/components/disclaimer-banner'
 import { FooterDisclaimer } from '@/components/footer-disclaimer'
 import { AQIBadge } from '@/components/aqi-badge'
 import { Zone, AQIEstimate } from '@/lib/types'
+import { useCity } from '@/context/CityContext'
+import { Home, Building2, Factory, Trees, Layers, MapPin } from 'lucide-react'
 
-const LAND_USE_ICONS: Record<string, string> = {
-  residential: '🏘️',
-  commercial:  '🏢',
-  industrial:  '🏭',
-  green_space: '🌳',
-  mixed:       '🏙️',
+const LAND_USE_ICONS: Record<string, React.ReactNode> = {
+  residential: <Home size={14} className="text-zinc-500" />,
+  commercial: <Building2 size={14} className="text-zinc-500" />,
+  industrial: <Factory size={14} className="text-zinc-500" />,
+  green_space: <Trees size={14} className="text-zinc-500" />,
+  mixed: <Layers size={14} className="text-zinc-500" />,
 }
 
 // Single zone row
@@ -21,9 +23,9 @@ function ZoneRow({ zone, estimate, index }: { zone: Zone; estimate?: AQIEstimate
   const [hovered, setHovered] = useState(false)
   const aqiColor =
     !estimate ? '#52525b' :
-    estimate.estimated_aqi <= 50  ? '#34d399' :
-    estimate.estimated_aqi <= 100 ? '#fbbf24' :
-    estimate.estimated_aqi <= 150 ? '#f97316' : '#f87171'
+      estimate.estimated_aqi <= 50 ? '#34d399' :
+        estimate.estimated_aqi <= 100 ? '#fbbf24' :
+          estimate.estimated_aqi <= 150 ? '#f97316' : '#f87171'
 
   return (
     <Link
@@ -34,8 +36,11 @@ function ZoneRow({ zone, estimate, index }: { zone: Zone; estimate?: AQIEstimate
         backgroundColor: hovered ? 'rgba(52,211,153,0.03)' : 'transparent',
         borderBottomColor: 'rgba(39,39,42,0.5)',
         transition: 'background-color 0.15s ease',
+        animationName: 'fadeSlideUp',
+        animationDuration: '0.4s',
+        animationTimingFunction: 'ease',
+        animationFillMode: 'both',
         animationDelay: `${index * 40}ms`,
-        animation: 'fadeSlideUp 0.4s ease both',
       }}
       className="grid grid-cols-12 gap-4 px-6 py-4 border-b last:border-b-0 group cursor-pointer"
     >
@@ -59,7 +64,7 @@ function ZoneRow({ zone, estimate, index }: { zone: Zone; estimate?: AQIEstimate
       {/* Land use */}
       <div className="col-span-2 flex items-center">
         <span className="text-xs text-zinc-500 capitalize flex items-center gap-1.5">
-          <span className="opacity-60">{LAND_USE_ICONS[zone.land_use_type] ?? '📍'}</span>
+          <span className="opacity-60">{LAND_USE_ICONS[zone.land_use_type] ?? <MapPin size={14} className="text-zinc-500" />}</span>
           {zone.land_use_type.replace('_', ' ')}
         </span>
       </div>
@@ -101,6 +106,7 @@ function ZoneRow({ zone, estimate, index }: { zone: Zone; estimate?: AQIEstimate
 }
 
 export default function ZonesPage() {
+  const { currentCityId } = useCity()
   const [zones, setZones] = useState<Zone[]>([])
   const [estimates, setEstimates] = useState<Map<string, AQIEstimate>>(new Map())
   const [isLoading, setIsLoading] = useState(true)
@@ -110,7 +116,7 @@ export default function ZonesPage() {
   useEffect(() => {
     const loadZones = async () => {
       try {
-        const response = await fetch('/api/zones', { cache: 'no-store' })
+        const response = await fetch(`/api/zones?cityId=${currentCityId}`, { cache: 'no-store' })
         const data = await response.json()
         setZones(data.zones ?? [])
         setEstimates(new Map(Object.entries(data.estimates ?? {}) as [string, AQIEstimate][]))
@@ -123,7 +129,7 @@ export default function ZonesPage() {
     }
 
     void loadZones()
-  }, [])
+  }, [currentCityId])
 
   if (isLoading) {
     return (
@@ -139,10 +145,10 @@ export default function ZonesPage() {
   const FILTERS = ['all', 'residential', 'commercial', 'industrial', 'green_space', 'mixed']
   const filteredZones = filter === 'all' ? zones : zones.filter((z) => z.land_use_type === filter)
 
-  const goodCount     = Array.from(estimates.values()).filter((e) => e.category === 'good').length
+  const goodCount = Array.from(estimates.values()).filter((e) => e.category === 'good').length
   const moderateCount = Array.from(estimates.values()).filter((e) => e.category === 'moderate').length
-  const poorCount     = Array.from(estimates.values()).filter((e) => e.category === 'poor').length
-  const severeCount   = Array.from(estimates.values()).filter((e) => e.category === 'severe').length
+  const poorCount = Array.from(estimates.values()).filter((e) => e.category === 'poor').length
+  const severeCount = Array.from(estimates.values()).filter((e) => e.category === 'severe').length
 
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col">
@@ -195,7 +201,7 @@ export default function ZonesPage() {
             className="glow-btn inline-flex items-center gap-2 px-5 py-3 bg-emerald-500 text-zinc-950 font-semibold rounded-xl text-sm flex-shrink-0"
           >
             <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path d="M12 5v14M5 12h14" strokeLinecap="round"/>
+              <path d="M12 5v14M5 12h14" strokeLinecap="round" />
             </svg>
             New Zone
           </Link>
@@ -207,10 +213,10 @@ export default function ZonesPage() {
           className="flex flex-wrap gap-2 mb-7"
         >
           {[
-            { label: 'Good',     count: goodCount,     color: '#34d399' },
+            { label: 'Good', count: goodCount, color: '#34d399' },
             { label: 'Moderate', count: moderateCount, color: '#fbbf24' },
-            { label: 'Poor',     count: poorCount,     color: '#f97316' },
-            { label: 'Severe',   count: severeCount,   color: '#f87171' },
+            { label: 'Poor', count: poorCount, color: '#f97316' },
+            { label: 'Severe', count: severeCount, color: '#f87171' },
           ].map((s) => (
             <div
               key={s.label}
@@ -238,8 +244,9 @@ export default function ZonesPage() {
                   className="filter-pill px-3 py-1 rounded-lg text-xs font-semibold capitalize"
                   style={{
                     backgroundColor: active ? 'rgba(52,211,153,0.12)' : 'rgba(39,39,42,0.5)',
+                    borderWidth: '1px',
+                    borderStyle: 'solid',
                     borderColor: active ? 'rgba(52,211,153,0.3)' : 'rgba(63,63,70,0.5)',
-                    border: '1px solid',
                     color: active ? '#34d399' : '#71717a',
                   }}
                 >
@@ -263,8 +270,8 @@ export default function ZonesPage() {
           >
             <div className="w-14 h-14 rounded-2xl bg-zinc-800/60 border border-zinc-700/50 flex items-center justify-center mx-auto mb-5">
               <svg width="22" height="22" fill="none" stroke="#52525b" strokeWidth="1.8" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                <circle cx="12" cy="12" r="10" />
+                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
               </svg>
             </div>
             <p className="text-zinc-400 font-semibold mb-2">No zones created yet</p>
@@ -274,7 +281,7 @@ export default function ZonesPage() {
               className="glow-btn inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 text-zinc-950 font-semibold rounded-xl text-sm"
             >
               <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path d="M12 5v14M5 12h14" strokeLinecap="round"/>
+                <path d="M12 5v14M5 12h14" strokeLinecap="round" />
               </svg>
               Create First Zone
             </Link>
@@ -294,12 +301,12 @@ export default function ZonesPage() {
             {/* Table header */}
             <div className="grid grid-cols-12 gap-4 px-6 py-3.5 border-b border-zinc-800/60 bg-zinc-900/60">
               {[
-                { label: 'Zone Name',  span: 4 },
-                { label: 'Type',       span: 2 },
-                { label: 'Traffic',    span: 2 },
+                { label: 'Zone Name', span: 4 },
+                { label: 'Type', span: 2 },
+                { label: 'Traffic', span: 2 },
                 { label: 'Population', span: 2 },
-                { label: 'AQI',        span: 1 },
-                { label: '',           span: 1 },
+                { label: 'AQI', span: 1 },
+                { label: '', span: 1 },
               ].map((col, i) => (
                 <div
                   key={i}

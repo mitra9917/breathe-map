@@ -4,11 +4,16 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
+import { useCity } from '@/context/CityContext'
+import { MOCK_CITIES } from '@/lib/mockCities'
 
 export function NavBar() {
   const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [cityDropdownOpen, setCityDropdownOpen] = useState(false)
+  const { currentCityId, setCurrentCity } = useCity()
+  const currentCity = MOCK_CITIES.find(c => c.id === currentCityId) || MOCK_CITIES[0]
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -80,8 +85,8 @@ export function NavBar() {
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                 </svg>
               </div>
               <span
@@ -121,6 +126,43 @@ export function NavBar() {
                   </Link>
                 )
               })}
+
+              {/* Desktop City Selector Dropdown */}
+              <div className="relative z-50 ml-2">
+                <button
+                  onClick={() => setCityDropdownOpen(!cityDropdownOpen)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-150 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                  {currentCity.name}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: cityDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+
+                {cityDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setCityDropdownOpen(false)}></div>
+                    <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-zinc-800/60 bg-zinc-950/95 backdrop-blur-md shadow-xl z-50 py-1.5 overflow-hidden">
+                      {MOCK_CITIES.map(city => (
+                        <button
+                          key={city.id}
+                          onClick={() => {
+                            setCurrentCity(city.id)
+                            setCityDropdownOpen(false)
+                          }}
+                          className={cn(
+                            "w-full text-left px-4 py-2 text-[13px] transition-colors flex items-center gap-2 hover:bg-zinc-800/50",
+                            city.id === currentCity.id ? "text-emerald-400 font-medium" : "text-zinc-400"
+                          )}
+                        >
+                          {city.id === currentCity.id && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />}
+                          {city.id !== currentCity.id && <span className="w-1.5 h-1.5 rounded-full bg-transparent flex-shrink-0" />}
+                          {city.name}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Mobile hamburger */}
@@ -168,6 +210,29 @@ export function NavBar() {
                 </Link>
               )
             })}
+
+            <div className="mt-4 mb-2 px-3 border-t border-zinc-800/60 pt-4">
+              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest pl-1 mb-2 block">Select City</span>
+              <div className="flex flex-col gap-1">
+                {MOCK_CITIES.map(city => (
+                  <button
+                    key={city.id}
+                    onClick={() => {
+                      setCurrentCity(city.id)
+                      setMobileOpen(false)
+                    }}
+                    className={cn(
+                      "text-left px-3 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-3",
+                      city.id === currentCity.id ? "text-emerald-400 bg-emerald-500/10" : "text-zinc-400 hover:text-zinc-300"
+                    )}
+                  >
+                    {city.id === currentCity.id && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />}
+                    {city.id !== currentCity.id && <span className="w-1.5 h-1.5 rounded-full bg-transparent flex-shrink-0" />}
+                    {city.name}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </nav>

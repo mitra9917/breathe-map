@@ -4,84 +4,26 @@ import {
   getAQICategory,
   getFeatureContributions,
 } from '@/lib/mock-data'
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { db } from './adapter'
 
 export async function listZones(): Promise<Zone[]> {
-  const supabase = getSupabaseServerClient()
-  const { data, error } = await supabase
-    .from('zones')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (error) throw error
-  return (data ?? []) as Zone[]
+  return db.zones.getAll()
 }
 
 export async function getZoneById(id: string): Promise<Zone | null> {
-  const supabase = getSupabaseServerClient()
-  const { data, error } = await supabase.from('zones').select('*').eq('id', id).maybeSingle()
-
-  if (error) throw error
-  return (data as Zone | null) ?? null
+  return db.zones.getById(id)
 }
 
 export async function createZone(zone: Omit<Zone, 'id' | 'created_at'>): Promise<Zone> {
-  const supabase = getSupabaseServerClient()
-  const { data, error } = await supabase.from('zones').insert(zone).select('*').single()
-
-  if (error) throw error
-  return data as Zone
+  return db.zones.create(zone)
 }
 
 export async function storeAQIEstimate(zone: Zone): Promise<AQIEstimate> {
-  const estimatedAQI = calculateMockAQI(zone)
-  const estimate: AQIEstimate = {
-    zone_id: zone.id,
-    estimated_aqi: estimatedAQI,
-    category: getAQICategory(estimatedAQI),
-    feature_contributions: getFeatureContributions(zone),
-    assumptions:
-      'AQI estimate from weighted deterministic model: traffic (40%), population (20%), road network (20%), land use (20%).',
-    timestamp: new Date().toISOString(),
-  }
-
-  const supabase = getSupabaseServerClient()
-  const { error } = await supabase.from('aqi_estimates').insert({
-    zone_id: estimate.zone_id,
-    estimated_aqi: estimate.estimated_aqi,
-    category: estimate.category,
-    feature_contributions: estimate.feature_contributions,
-    assumptions: estimate.assumptions,
-  })
-
-  if (error) throw error
-  return estimate
+  return db.aqi.estimate(zone)
 }
 
 export async function getLatestAQIForZone(zone: Zone): Promise<AQIEstimate> {
-  const supabase = getSupabaseServerClient()
-  const { data, error } = await supabase
-    .from('aqi_estimates')
-    .select('*')
-    .eq('zone_id', zone.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (error) throw error
-
-  if (!data) {
-    return storeAQIEstimate(zone)
-  }
-
-  return {
-    zone_id: data.zone_id,
-    estimated_aqi: data.estimated_aqi,
-    category: data.category,
-    feature_contributions: data.feature_contributions,
-    assumptions: data.assumptions,
-    timestamp: data.created_at,
-  } as AQIEstimate
+  return db.aqi.estimate(zone)
 }
 
 export async function getLatestAQIForZones(zones: Zone[]): Promise<Map<string, AQIEstimate>> {
