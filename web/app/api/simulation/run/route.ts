@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'crypto'
 import { SimulationResult } from '@/lib/types'
-import { calculateMockAQI, simulateReduction } from '@/lib/mock-data'
 import { getZoneById } from '@/lib/db/repository'
+import { predictZoneAQI } from '@/lib/ml/inference'
+import { getSupabaseServerClient } from '@/lib/supabase/server'
 
 /**
  * POST /api/simulation/run
@@ -32,12 +34,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const {
       zone_id,
+      cityId,
       scenario_name,
       vehicle_reduction_percentage = 0,
       green_cover_increase = 0,
       traffic_rerouting_factor = 0,
     } = body as {
       zone_id: string
+      cityId?: string
       scenario_name?: string
       vehicle_reduction_percentage: number
       green_cover_increase: number
@@ -51,7 +55,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const zone = await getZoneById(zone_id)
+    const zone = await getZoneById(zone_id, cityId)
     if (!zone) {
       return NextResponse.json({ error: 'Zone not found' }, { status: 404 })
     }
@@ -71,31 +75,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Calculate baseline AQI
-    const beforeAQI = calculateMockAQI(zone)
+    const baselinePrediction = predictZoneAQI(zone)
+    const beforeAQI = Math.round(baselinePrediction.estimated_aqi)
 
-    // Simulate reduction
-    const simulatedAfterAQI = simulateReduction(
-      beforeAQI,
-      vehicle_reduction_percentage,
-      green_cover_increase,
-      traffic_rerouting_factor
-    )
+    const trafficFactor = (1 - vehicle_reduction_percentage / 100) * (1 - traffic_rerouting_factor * 0.35)
+    const adjustedTraffic = Math.max(0, Math.round(zone.traffic_density * trafficFactor))
+    const adjustedRoadLength = Number((zone.road_length * (1 - traffic_rerouting_factor * 0.2)).toFixed(2))
 
-    // Persist integer AQI metrics to match DB column types.
-    const afterAQI = Math.round(simulatedAfterAQI)
+    const projectedZone = {
+      ...zone,
+      traffic_density: adjustedTraffic,
+      road_length: Math.max(0, adjustedRoadLength),
+    }
+
+    const projectedPrediction = predictZoneAQI(projectedZone)
+    const greeningReduction = Math.round(green_cover_increase * 0.6)
+    const afterAQI = Math.max(0, Math.round(projectedPrediction.estimated_aqi) - greeningReduction)
     const delta = beforeAQI - afterAQI
-    const deltaPercentage = (delta / beforeAQI) * 100
+    const deltaPercentage = beforeAQI > 0 ? (delta / beforeAQI) * 100 : 0
 
     // Generate explanation
     const factors = []
     if (vehicle_reduction_percentage > 0) {
       factors.push(
-        `${vehicle_reduction_percentage}% vehicle reduction contributes ~${Math.round((vehicle_reduction_percentage / 100) * beforeAQI * 0.4)}pts`
+        `${vehicle_reduction_percentage}% vehicle reduction and rerouting lower modeled traffic load`
       )
     }
     if (green_cover_increase > 0) {
-      factors.push(`${green_cover_increase}% green increase contributes ~${Math.round(green_cover_increase * 0.5)}pts`)
+      factors.push(`${green_cover_increase}% green cover applies additional reduction (~${greeningReduction} pts)`)
     }
     if (traffic_rerouting_factor > 0) {
       factors.push(`Traffic rerouting factor: ${traffic_rerouting_factor.toFixed(2)}`)
@@ -122,8 +129,10 @@ export async function POST(request: NextRequest) {
         'Substantial improvement projected. This represents a meaningful environmental intervention.'
     }
 
+    const scenarioId = randomUUID()
+    const resultId = randomUUID()
     const result: SimulationResult = {
-      scenario_id: `sim-${Date.now()}`,
+      scenario_id: scenarioId,
       zone_id: zone.id,
       before_aqi: beforeAQI,
       after_aqi: afterAQI,
@@ -134,7 +143,35 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     }
 
-    result.scenario_id = `scenario-${Date.now()}`
+    const supabase = getSupabaseServerClient()
+    const { error: scenarioError } = await supabase.from('simulation_scenarios').insert({
+      id: scenarioId,
+      zone_id: zone.id,
+      name: scenario_name ?? `Simulation for ${zone.name}`,
+      vehicle_reduction_percentage,
+      green_cover_increase,
+      traffic_rerouting_factor,
+    })
+    if (scenarioError) {
+      console.error('Failed to store scenario:', scenarioError)
+      return NextResponse.json({ error: 'Failed to persist scenario' }, { status: 500 })
+    }
+
+    const { error: resultError } = await supabase.from('simulation_results').insert({
+      id: resultId,
+      scenario_id: scenarioId,
+      zone_id: zone.id,
+      before_aqi: beforeAQI,
+      after_aqi: afterAQI,
+      delta,
+      delta_percentage: Number((Math.round(deltaPercentage * 10) / 10).toFixed(2)),
+      explanation,
+      recommendation,
+    })
+    if (resultError) {
+      console.error('Failed to store simulation result:', resultError)
+      return NextResponse.json({ error: 'Failed to persist simulation result' }, { status: 500 })
+    }
 
     return NextResponse.json(result)
   } catch (error) {

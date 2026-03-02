@@ -1,17 +1,16 @@
 import { AQIEstimate, AQICorrelation, Zone, ZoneCluster } from '@/lib/types'
-import {
-  calculateMockAQI,
-  getAQICategory,
-  getFeatureContributions,
-} from '@/lib/mock-data'
 import { db } from './adapter'
 
 export async function listZones(): Promise<Zone[]> {
   return db.zones.getAll()
 }
 
-export async function getZoneById(id: string): Promise<Zone | null> {
-  return db.zones.getById(id)
+export async function listZonesByCity(cityId?: string): Promise<Zone[]> {
+  return db.zones.getAll(cityId)
+}
+
+export async function getZoneById(id: string, cityId?: string): Promise<Zone | null> {
+  return db.zones.getById(id, cityId)
 }
 
 export async function createZone(zone: Omit<Zone, 'id' | 'created_at'>): Promise<Zone> {
@@ -107,7 +106,12 @@ export function getClustersFromEstimates(zones: Zone[], estimates: Map<string, A
   const grouped = new Map<string, Zone[]>()
 
   for (const zone of zones) {
-    const key = zone.land_use_type
+    const estimate = estimates.get(zone.id)
+    const clusterKey =
+      estimate && typeof (estimate.feature_contributions as any)?.cluster_id === 'number'
+        ? `cluster_${(estimate.feature_contributions as any).cluster_id}`
+        : zone.land_use_type
+    const key = clusterKey
     if (!grouped.has(key)) grouped.set(key, [])
     grouped.get(key)?.push(zone)
   }
@@ -125,8 +129,8 @@ export function getClustersFromEstimates(zones: Zone[], estimates: Map<string, A
       cluster_id: clusterId++,
       zones: members.map((m) => m.id),
       average_aqi: avgAQI,
-      dominant_land_use: landUse as ZoneCluster['dominant_land_use'],
-      characteristics: `Zones primarily categorized as ${landUse.replace('_', ' ')} with similar AQI behavior.`,
+      dominant_land_use: members[0].land_use_type,
+      characteristics: `ML similarity cluster ${landUse.replace('_', ' ')} with comparable AQI behavior.`,
     })
   }
 

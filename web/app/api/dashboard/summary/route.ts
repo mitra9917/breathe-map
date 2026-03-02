@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
-import { getLatestAQIForZones, listZones } from '@/lib/db/repository'
+import { getLatestAQIForZones, listZonesByCity } from '@/lib/db/repository'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const zones = await listZones()
+    const url = new URL(request.url)
+    const cityId = url.searchParams.get('cityId') ?? undefined
+    const zones = await listZonesByCity(cityId)
     const estimateMap = await getLatestAQIForZones(zones)
     const estimates = Array.from(estimateMap.values())
 

@@ -753,33 +753,62 @@ export default function DashboardPage() {
     toastWarning('Zone placement cancelled')
   }, [])
 
-  const handleZoneSaved = useCallback((formData: Omit<Zone, 'id' | 'created_at'> | Zone) => {
+  const handleZoneSaved = useCallback(async (formData: Omit<Zone, 'id' | 'created_at'> | Zone) => {
     if (!placedGeometry) return
 
-    const landUseAqiMap: Record<string, [number, number]> = {
-      industrial: [220, 300], commercial: [160, 220], residential: [100, 160],
-      mixed: [120, 200], green_space: [40, 90],
-    }
-    const [min, max] = landUseAqiMap[formData.land_use_type] ?? [80, 180]
-    const estimatedAQI = Math.floor(Math.random() * (max - min + 1)) + min
+    try {
+      const createRes = await fetch('/api/zones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          cityId: currentCityId,
+          geometry: placedGeometry,
+        }),
+      })
+      if (!createRes.ok) {
+        throw new Error('Failed to create zone')
+      }
+      const createData = await createRes.json()
+      const createdZone = createData.zone as Zone
 
-    const newZone: ZoneFeature = {
-      id: `placed-${Date.now()}`,
-      name: formData.name,
-      landUseType: formData.land_use_type,
-      trafficDensity: formData.traffic_density,
-      populationDensity: formData.population_density,
-      roadLength: formData.road_length,
-      notes: formData.notes ?? '',
-      estimatedAQI,
-      geometry: placedGeometry,
-    }
+      const estimateRes = await fetch('/api/aqi/estimate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ zone_id: createdZone.id, cityId: currentCityId }),
+      })
+      if (!estimateRes.ok) {
+        throw new Error('Failed to estimate AQI')
+      }
+      const estimate = (await estimateRes.json()) as AQIEstimate
 
-    setMapZones(prev => [...prev, newZone])
-    setShowZoneModal(false)
-    setPlacedGeometry(null)
-    toastSuccess(`Zone "${formData.name}" placed successfully`)
-  }, [placedGeometry])
+      const newZone: ZoneFeature = {
+        id: createdZone.id,
+        name: createdZone.name,
+        landUseType: createdZone.land_use_type,
+        trafficDensity: createdZone.traffic_density,
+        populationDensity: createdZone.population_density,
+        roadLength: createdZone.road_length,
+        notes: createdZone.notes ?? '',
+        estimatedAQI: estimate.estimated_aqi,
+        geometry: (createdZone.geometry as GeoJSON.Geometry) ?? placedGeometry,
+      }
+
+      setMapZones((prev) => [...prev, newZone])
+      setZones((prev) => [createdZone, ...prev])
+      setEstimates((prev) => {
+        const next = new Map(prev)
+        next.set(createdZone.id, estimate)
+        return next
+      })
+      setShowZoneModal(false)
+      setPlacedGeometry(null)
+      toastSuccess(`Zone "${formData.name}" placed successfully`)
+    } catch (error) {
+      console.error('Failed to save placed zone:', error)
+      toastWarning('Failed to save zone placement')
+    }
+  }, [placedGeometry, currentCityId])
 
   useEffect(() => {
     const load = async () => {
@@ -791,19 +820,23 @@ export default function DashboardPage() {
         setEstimates(new Map(Object.entries(summaryData.estimates ?? {}) as [string, AQIEstimate][]))
         setSummary(summaryData.summary ?? EMPTY_SUMMARY)
 
-        // ② Full zone list with GeoJSON geometry for Leaflet
-        try {
-          const zonesRes = await fetch(`/api/zones?cityId=${currentCityId}`, { cache: 'no-store' })
-          const zonesData = await zonesRes.json()
-          if (!zonesData || !zonesData.zones || zonesData.zones.length === 0) {
-            throw new Error('Empty Backend Response')
-          }
-          setMapZones(zonesData.zones)
-        } catch (zonesErr) {
-          console.warn('Running in Offline Demo Mode (mock data)')
-          const { offineMockZones } = await import('@/lib/mockZones')
-          setMapZones(offineMockZones[currentCityId] ?? offineMockZones['default-city'])
-        }
+        const zonesRes = await fetch(`/api/zones?cityId=${currentCityId}`, { cache: 'no-store' })
+        const zonesData = await zonesRes.json()
+        const zoneEstimates = new Map(
+          Object.entries(zonesData.estimates ?? {}) as [string, AQIEstimate][]
+        )
+        const mappedZones: ZoneFeature[] = (zonesData.zones ?? []).map((zone: Zone) => ({
+          id: zone.id,
+          name: zone.name,
+          landUseType: zone.land_use_type,
+          trafficDensity: zone.traffic_density,
+          populationDensity: zone.population_density,
+          roadLength: zone.road_length,
+          notes: zone.notes ?? '',
+          estimatedAQI: zoneEstimates.get(zone.id)?.estimated_aqi ?? 0,
+          geometry: ((zone.geometry as GeoJSON.Geometry | null) ?? null) as GeoJSON.Geometry,
+        }))
+        setMapZones(mappedZones)
       } catch (err) {
         console.error('Failed to load dashboard summary:', err)
       } finally {

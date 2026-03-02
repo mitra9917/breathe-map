@@ -5,14 +5,13 @@ import { NavBar } from '@/components/nav-bar'
 import { FooterDisclaimer } from '@/components/footer-disclaimer'
 import { toastWarning } from '@/lib/toast'
 import { ErrorCodes } from '@/lib/errorCodes'
-import { MOCK_CITIES } from '@/lib/mockCities'
 import { useCity } from '@/context/CityContext'
 import { useState } from 'react'
 import { Building2 } from 'lucide-react'
 
 export default function CitiesPage() {
     const router = useRouter()
-    const { currentCityId, setCurrentCity } = useCity()
+    const { currentCityId, cities, setCurrentCity } = useCity()
     const [hoveredCity, setHoveredCity] = useState<string | null>(null)
 
     const handleSelectCity = (id: string) => {
@@ -47,7 +46,7 @@ export default function CitiesPage() {
                 </div>
 
                 <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
-                    {MOCK_CITIES.map((city, i) => {
+                    {cities.map((city, i) => {
                         const isActive = city.id === currentCityId
                         const isHovered = hoveredCity === city.id
                         return (

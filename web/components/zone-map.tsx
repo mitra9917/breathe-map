@@ -52,9 +52,12 @@ export default function ZoneMap({ zones, isPlacingZone, onZonePlaced, onPlacemen
   const mapRef = useRef<any>(null)
   const previewLayerRef = useRef<any>(null)
   const { currentCity } = useCity()
+  const cityLat = currentCity.center_lat ?? 13.0827
+  const cityLng = currentCity.center_lng ?? 80.2707
+  const cityZoom = currentCity.zoom ?? 12
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current || !currentCity || !currentCity.center_lat) return
+    if (!containerRef.current || mapRef.current || !currentCity) return
 
     let isMounted = true
 
@@ -80,8 +83,8 @@ export default function ZoneMap({ zones, isPlacingZone, onZonePlaced, onPlacemen
         })
 
         const map = L.map(containerRef.current!, {
-          center: [currentCity.center_lat, currentCity.center_lng],
-          zoom: currentCity.zoom,
+          center: [cityLat, cityLng],
+          zoom: cityZoom,
           zoomControl: true,
           attributionControl: true,
         })
@@ -137,7 +140,7 @@ export default function ZoneMap({ zones, isPlacingZone, onZonePlaced, onPlacemen
         const allBounds: ReturnType<typeof L.latLngBounds>[] = []
 
         // Safely parse geometries and attach them if they were skipped via backend payload.
-        const zonedFeatures = injectMissingGeometry(zones, currentCity.center_lat, currentCity.center_lng)
+        const zonedFeatures = injectMissingGeometry(zones, cityLat, cityLng)
 
         zonedFeatures.forEach((zone: any) => {
           const estimatedAQI = zone.estimatedAQI ?? zone.estimated_aqi ?? 50
@@ -291,7 +294,7 @@ export default function ZoneMap({ zones, isPlacingZone, onZonePlaced, onPlacemen
         mapRef.current = null
       }
     }
-  }, [zones, currentCity.id])
+  }, [zones, currentCity.id, cityLat, cityLng, cityZoom])
 
   // ── Placement mode: click handler + preview layer + ESC key ──────────────
   useEffect(() => {
