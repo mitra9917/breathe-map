@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getLatestAQIForZone, getZoneById } from '@/lib/db/repository'
 import { db } from '@/lib/db/adapter'
 
-export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
-    const zone = await getZoneById(id)
+    const cityId = request.nextUrl.searchParams.get('cityId') ?? undefined
+    const zone = await getZoneById(id, cityId)
 
     if (!zone) {
       return NextResponse.json({ error: 'Zone not found' }, { status: 404 })

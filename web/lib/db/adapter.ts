@@ -1,128 +1,150 @@
-/**
- * Database Adapter Pattern
- * 
- * This file demonstrates the future integration point for a real database.
- * Currently uses in-memory mock data, but the interface allows easy swapping
- * to Supabase, Neon, or any other database.
- * 
- * How to integrate a real database:
- * 1. Install database driver (e.g., @supabase/supabase-js)
- * 2. Implement the DatabaseAdapter interface
- * 3. Replace import in api routes from mockZones to database adapter
- * 4. Update zone management pages to use real CRUD operations
- */
+import { AQIEstimate, DatabaseAdapter, Zone } from '../types'
+import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { predictZoneAQI } from '@/lib/ml/inference'
 
-import { Zone, AQIEstimate, DatabaseAdapter } from '../types'
-import { mockZones, generateMockAQIEstimates } from '../mock-data'
+function toZone(row: any): Zone {
+  return {
+    id: row.id,
+    name: row.name,
+    land_use_type: row.land_use_type,
+    traffic_density: row.traffic_density,
+    population_density: row.population_density,
+    road_length: Number(row.road_length),
+    notes: row.notes ?? '',
+    city_id: row.city_id ?? 'default-city',
+    geometry: row.geometry ?? null,
+    created_at: row.created_at,
+  }
+}
 
-/**
- * Mock implementation - currently used
- */
-const mockAdapter: DatabaseAdapter = {
+async function estimateAndPersist(zone: Zone): Promise<AQIEstimate> {
+  const prediction = predictZoneAQI(zone)
+  const estimatedAQI = Math.round(prediction.estimated_aqi)
+  const featureContributions = {
+    ...prediction.feature_contributions,
+    cluster_id: prediction.cluster_id,
+  }
+  const assumptions = `ML inference from trained model (${prediction.model_version}).`
+
+  const estimate: AQIEstimate = {
+    zone_id: zone.id,
+    estimated_aqi: estimatedAQI,
+    category: prediction.category,
+    feature_contributions: featureContributions,
+    assumptions,
+    timestamp: new Date().toISOString(),
+  }
+
+  try {
+    const supabase = getSupabaseServerClient()
+    const { error } = await supabase.from('aqi_estimates').insert({
+      zone_id: zone.id,
+      estimated_aqi: estimatedAQI,
+      category: prediction.category,
+      feature_contributions: featureContributions,
+      assumptions,
+      source: prediction.model_version,
+    })
+    if (error) {
+      console.error('Failed to persist AQI estimate:', error)
+    }
+  } catch (error) {
+    console.error('AQI persistence error:', error)
+  }
+
+  return estimate
+}
+
+const realAdapter: DatabaseAdapter = {
   zones: {
-    async getAll(): Promise<Zone[]> {
-      return mockZones
+    async getAll(cityId?: string): Promise<Zone[]> {
+      const supabase = getSupabaseServerClient()
+      let query = supabase.from('zones').select('*').order('created_at', { ascending: false })
+      if (cityId) query = query.eq('city_id', cityId)
+
+      const { data, error } = await query
+      if (error) throw error
+      return (data ?? []).map(toZone)
     },
 
-    async getById(id: string): Promise<Zone | null> {
-      return mockZones.find((z) => z.id === id) || null
+    async getById(id: string, cityId?: string): Promise<Zone | null> {
+      const supabase = getSupabaseServerClient()
+      let query = supabase.from('zones').select('*').eq('id', id)
+      if (cityId) query = query.eq('city_id', cityId)
+
+      const { data, error } = await query.maybeSingle()
+      if (error) throw error
+      if (!data) return null
+      return toZone(data)
     },
 
     async create(zone: Omit<Zone, 'id' | 'created_at'>): Promise<Zone> {
-      const newZone: Zone = {
-        ...zone,
-        id: `zone-${Date.now()}`,
-        created_at: new Date().toISOString(),
-      }
-      mockZones.push(newZone)
-      return newZone
+      const supabase = getSupabaseServerClient()
+      const cityId = zone.city_id ?? 'default-city'
+
+      const { data, error } = await supabase
+        .from('zones')
+        .insert({
+          name: zone.name,
+          land_use_type: zone.land_use_type,
+          traffic_density: zone.traffic_density,
+          population_density: zone.population_density,
+          road_length: zone.road_length,
+          notes: zone.notes ?? '',
+          city_id: cityId,
+          geometry: zone.geometry ?? null,
+        })
+        .select('*')
+        .single()
+
+      if (error) throw error
+      return toZone(data)
     },
 
     async update(id: string, updates: Partial<Zone>): Promise<Zone> {
-      const zone = mockZones.find((z) => z.id === id)
-      if (!zone) throw new Error('Zone not found')
-      Object.assign(zone, updates)
-      return zone
+      const supabase = getSupabaseServerClient()
+      const { data, error } = await supabase
+        .from('zones')
+        .update(updates)
+        .eq('id', id)
+        .select('*')
+        .single()
+      if (error) throw error
+      return toZone(data)
     },
 
     async delete(id: string): Promise<void> {
-      const index = mockZones.findIndex((z) => z.id === id)
-      if (index === -1) throw new Error('Zone not found')
-      mockZones.splice(index, 1)
+      const supabase = getSupabaseServerClient()
+      const { error } = await supabase.from('zones').delete().eq('id', id)
+      if (error) throw error
     },
   },
 
   aqi: {
     async estimate(zone: Zone): Promise<AQIEstimate> {
-      const estimates = generateMockAQIEstimates()
-      return estimates.get(zone.id) || { zone_id: zone.id, estimated_aqi: 0, category: 'good', feature_contributions: { traffic: 0, population: 0, road_network: 0, land_use: 0 }, assumptions: '', timestamp: new Date().toISOString() }
+      return estimateAndPersist(zone)
     },
 
     async getHistorical(zoneId: string): Promise<AQIEstimate[]> {
-      // Mock implementation - returns current estimate only
-      const estimates = generateMockAQIEstimates()
-      const estimate = estimates.get(zoneId)
-      return estimate ? [estimate] : []
+      const supabase = getSupabaseServerClient()
+      const { data, error } = await supabase
+        .from('aqi_estimates')
+        .select('zone_id, estimated_aqi, category, feature_contributions, assumptions, created_at')
+        .eq('zone_id', zoneId)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      return (data ?? []).map((row) => ({
+        zone_id: row.zone_id,
+        estimated_aqi: row.estimated_aqi,
+        category: row.category,
+        feature_contributions: row.feature_contributions,
+        assumptions: row.assumptions,
+        timestamp: row.created_at,
+      }))
     },
   },
 }
 
-/**
- * Real Database Implementation Example (Supabase)
- * 
- * const realAdapter: DatabaseAdapter = {
- *   zones: {
- *     async getAll(): Promise<Zone[]> {
- *       const { data, error } = await supabase
- *         .from('zones')
- *         .select('*')
- *       if (error) throw error
- *       return data || []
- *     },
- * 
- *     async getById(id: string): Promise<Zone | null> {
- *       const { data, error } = await supabase
- *         .from('zones')
- *         .select('*')
- *         .eq('id', id)
- *         .single()
- *       if (error) return null
- *       return data
- *     },
- * 
- *     async create(zone: Omit<Zone, 'id' | 'created_at'>): Promise<Zone> {
- *       const { data, error } = await supabase
- *         .from('zones')
- *         .insert([zone])
- *         .select()
- *         .single()
- *       if (error) throw error
- *       return data
- *     },
- * 
- *     async update(id: string, updates: Partial<Zone>): Promise<Zone> {
- *       const { data, error } = await supabase
- *         .from('zones')
- *         .update(updates)
- *         .eq('id', id)
- *         .select()
- *         .single()
- *       if (error) throw error
- *       return data
- *     },
- * 
- *     async delete(id: string): Promise<void> {
- *       const { error } = await supabase
- *         .from('zones')
- *         .delete()
- *         .eq('id', id)
- *       if (error) throw error
- *     },
- *   },
- *   // ... aqi methods similarly
- * }
- */
-
-// Export the appropriate adapter based on environment
-export const db: DatabaseAdapter = mockAdapter
-// In production, switch to: export const db: DatabaseAdapter = realAdapter
+export const db: DatabaseAdapter = realAdapter

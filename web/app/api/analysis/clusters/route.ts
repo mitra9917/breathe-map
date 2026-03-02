@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getClustersFromEstimates, getLatestAQIForZones, listZones } from '@/lib/db/repository'
+import { getClustersFromEstimates, getLatestAQIForZones, listZonesByCity } from '@/lib/db/repository'
 
 /**
  * GET /api/analysis/clusters
@@ -10,9 +10,11 @@ import { getClustersFromEstimates, getLatestAQIForZones, listZones } from '@/lib
  * 
  * DISCLAIMER: Clusters are exploratory groupings from mock data only
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const zones = await listZones()
+    const url = new URL(request.url)
+    const cityId = url.searchParams.get('cityId') ?? undefined
+    const zones = await listZonesByCity(cityId)
     const estimates = await getLatestAQIForZones(zones)
     const clusters = getClustersFromEstimates(zones, estimates)
     const zoneLookup = Object.fromEntries(zones.map((zone) => [zone.id, zone.name]))
@@ -23,7 +25,7 @@ export async function GET() {
       total_zones: zones.length,
       total_clusters: clusters.length,
       disclaimer:
-        'EXPLORATORY CLUSTERING: Zone groupings are based on deterministic AQI estimates and land use. Results are for educational use only.',
+        'Exploratory ML clustering based on model-derived AQI and zone features.',
       timestamp: new Date().toISOString(),
     }
 

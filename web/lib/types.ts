@@ -20,7 +20,17 @@ export interface Zone {
   population_density: number // 0-100
   road_length: number // km
   notes: string
+  city_id?: string
+  geometry?: unknown | null
   created_at: string
+}
+
+export interface City {
+  id: string
+  name: string
+  center_lat?: number
+  center_lng?: number
+  zoom?: number
 }
 
 export interface AQIEstimate {
@@ -79,8 +89,8 @@ export interface SimulationResult {
 
 export interface DatabaseAdapter {
   zones: {
-    getAll(): Promise<Zone[]>
-    getById(id: string): Promise<Zone | null>
+    getAll(cityId?: string): Promise<Zone[]>
+    getById(id: string, cityId?: string): Promise<Zone | null>
     create(zone: Omit<Zone, 'id' | 'created_at'>): Promise<Zone>
     update(id: string, zone: Partial<Zone>): Promise<Zone>
     delete(id: string): Promise<void>

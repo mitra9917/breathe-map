@@ -5,15 +5,13 @@ import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useCity } from '@/context/CityContext'
-import { MOCK_CITIES } from '@/lib/mockCities'
 
 export function NavBar() {
   const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [cityDropdownOpen, setCityDropdownOpen] = useState(false)
-  const { currentCityId, setCurrentCity } = useCity()
-  const currentCity = MOCK_CITIES.find(c => c.id === currentCityId) || MOCK_CITIES[0]
+  const { currentCityId, currentCity, cities, setCurrentCity } = useCity()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -142,7 +140,7 @@ export function NavBar() {
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setCityDropdownOpen(false)}></div>
                     <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-zinc-800/60 bg-zinc-950/95 backdrop-blur-md shadow-xl z-50 py-1.5 overflow-hidden">
-                      {MOCK_CITIES.map(city => (
+                      {cities.map(city => (
                         <button
                           key={city.id}
                           onClick={() => {
@@ -214,7 +212,7 @@ export function NavBar() {
             <div className="mt-4 mb-2 px-3 border-t border-zinc-800/60 pt-4">
               <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest pl-1 mb-2 block">Select City</span>
               <div className="flex flex-col gap-1">
-                {MOCK_CITIES.map(city => (
+                {cities.map(city => (
                   <button
                     key={city.id}
                     onClick={() => {

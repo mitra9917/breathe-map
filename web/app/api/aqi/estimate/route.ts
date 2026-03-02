@@ -22,7 +22,7 @@ import { getZoneById, storeAQIEstimate } from '@/lib/db/repository'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { zone_id } = body as { zone_id: string }
+    const { zone_id, cityId } = body as { zone_id: string; cityId?: string }
 
     if (!zone_id) {
       return NextResponse.json(
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const zone = await getZoneById(zone_id)
+    const zone = await getZoneById(zone_id, cityId)
     if (!zone) {
       return NextResponse.json({ error: 'Zone not found' }, { status: 404 })
     }
