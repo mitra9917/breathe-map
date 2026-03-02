@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { NavBar } from '@/components/nav-bar'
-import { DisclaimerBanner } from '@/components/disclaimer-banner'
 import { FooterDisclaimer } from '@/components/footer-disclaimer'
 import { useState, useEffect, useRef } from 'react'
 
@@ -215,7 +214,7 @@ export default function Home() {
   useEffect(() => setMounted(true), [])
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col overflow-x-hidden">
+    <div className="min-h-screen bg-zinc-950 flex flex-col">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
 
@@ -269,7 +268,6 @@ export default function Home() {
       `}</style>
 
       <NavBar />
-      <DisclaimerBanner />
 
       <main className="flex-1 body-font">
 
@@ -304,7 +302,7 @@ export default function Home() {
               className="text-zinc-400 text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed mb-12"
             >
               Map-based air quality modelling. Zone configuration, deterministic AQI estimation,
-              factor correlation analysis, and intervention simulation — built for learning and exploration.
+              factor correlation analysis, and intervention simulation:  built for learning and exploration.
             </p>
 
             <div
@@ -339,7 +337,6 @@ export default function Home() {
               <div className="hidden sm:flex flex-col justify-center items-start gap-1 pl-4 border-l border-white/10">
                 <span className="text-[11px] text-zinc-500 uppercase tracking-widest font-medium">Simulated</span>
                 <span className="text-[11px] text-zinc-500 uppercase tracking-widest font-medium">AQI Values</span>
-                <span className="text-[10px] text-zinc-600 mt-1">Not real data</span>
               </div>
             </div>
           </div>
@@ -377,12 +374,11 @@ export default function Home() {
                 desc: "Every AQI value is traceable to its exact contributing weights and input values."
               },
               {
-                title: "Educational Scope Only",
-                desc: "Uses synthetic data and simplified models. Not intended for regulatory analysis or real-world decision-making.",
-                highlight: true
+                title: "Planning and Simulation Scope",
+                desc: "Uses modeled data to provide exploratory insights and scenario-based air-quality estimates.",
               }
             ].map((item, i) => (
-              <CapabilityCard key={i} index={i} title={item.title} desc={item.desc} highlight={item.highlight} />
+              <CapabilityCard key={i} index={i} title={item.title} desc={item.desc} />
             ))}
           </div>
         </section>
@@ -417,7 +413,7 @@ export default function Home() {
                 Simple, Transparent Workflow
               </h2>
               <p className="text-zinc-500 text-sm leading-relaxed">
-                Four stages from zone definition to intervention testing — every calculation fully traceable.
+                Four stages from zone definition to intervention testing, every calculation fully traceable.
               </p>
             </div>
 
@@ -468,7 +464,6 @@ export default function Home() {
 
             <p className="text-xs text-zinc-600 max-w-xl mx-auto leading-relaxed">
               This is an educational simulation tool using synthetic data and simplified relationships.
-              Results should not be used for policy, compliance, health advice or real-world planning.
             </p>
           </div>
         </section>

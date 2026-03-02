@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { NavBar } from '@/components/nav-bar'
-import { DisclaimerBanner } from '@/components/disclaimer-banner'
 import { FooterDisclaimer } from '@/components/footer-disclaimer'
 import { AQIBadge } from '@/components/aqi-badge'
 import { Zone, AQIEstimate } from '@/lib/types'
@@ -163,7 +162,6 @@ export default function ZoneDetailPage() {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col">
         <NavBar />
-        <DisclaimerBanner />
         <main className="flex-1 flex flex-col items-center justify-center gap-5 px-4">
           <div className="w-14 h-14 rounded-2xl bg-zinc-800/60 border border-zinc-700/50 flex items-center justify-center">
             <svg width="24" height="24" fill="none" stroke="#52525b" strokeWidth="1.8" viewBox="0 0 24 24">
@@ -201,7 +199,6 @@ export default function ZoneDetailPage() {
       `}</style>
 
       <NavBar />
-      <DisclaimerBanner />
 
       <main className="body-font flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-10 md:py-14">
 

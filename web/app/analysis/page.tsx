@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { NavBar } from '@/components/nav-bar'
-import { DisclaimerBanner } from '@/components/disclaimer-banner'
 import { FooterDisclaimer } from '@/components/footer-disclaimer'
 import { ZoneCluster, AQICorrelation } from '@/lib/types'
 import { useCity } from '@/context/CityContext'
@@ -265,7 +264,6 @@ export default function AnalysisPage() {
       `}</style>
 
       <NavBar />
-      <DisclaimerBanner />
 
       <main className="body-font flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-10 md:py-14">
 

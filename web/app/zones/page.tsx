@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { NavBar } from '@/components/nav-bar'
-import { DisclaimerBanner } from '@/components/disclaimer-banner'
 import { FooterDisclaimer } from '@/components/footer-disclaimer'
 import { AQIBadge } from '@/components/aqi-badge'
 import { Zone, AQIEstimate } from '@/lib/types'
@@ -174,7 +173,6 @@ export default function ZonesPage() {
       `}</style>
 
       <NavBar />
-      <DisclaimerBanner />
 
       <main className="body-font flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-10 md:py-14">
 

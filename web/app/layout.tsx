@@ -5,9 +5,8 @@ import { CityProvider } from '@/context/CityContext'
 import { ToasterProvider } from '@/components/toaster-provider'
 
 export const metadata: Metadata = {
-  title: 'Breathe Map | Air Quality Simulation & Analysis',
-  description: 'Explore air quality patterns and simulate pollution reduction scenarios. Mock estimates and educational simulations only.',
-  generator: 'v0.app',
+  title: 'Breathe Map',
+  description: 'Explore air quality patterns and simulate pollution reduction scenarios.',
 }
 
 export const viewport: Viewport = {

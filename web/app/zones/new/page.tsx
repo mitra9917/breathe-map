@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { NavBar } from '@/components/nav-bar'
-import { DisclaimerBanner } from '@/components/disclaimer-banner'
 import { ZoneForm } from '@/components/zone-form'
 import { Zone } from '@/lib/types'
 import { useCity } from '@/context/CityContext'
@@ -51,7 +50,6 @@ export default function NewZonePage() {
       `}</style>
 
       <NavBar />
-      <DisclaimerBanner />
 
       <main className="body-font flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-10 md:py-14">
 
@@ -102,7 +100,7 @@ export default function NewZonePage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-zinc-200">Zone Parameters</p>
-              <p className="text-xs text-zinc-500">All fields except notes are required</p>
+              <p className="text-xs text-zinc-500">All fields except notes are required.</p>
             </div>
           </div>
 
@@ -124,7 +122,7 @@ export default function NewZonePage() {
             <line x1="12" y1="17" x2="12.01" y2="17" strokeLinecap="round" />
           </svg>
           <p className="text-xs text-zinc-500 leading-relaxed">
-            Zone parameters are used to estimate AQI via the deterministic model — not real sensor readings. The zone will be persisted via the API.
+            Zone parameters are used to estimate AQI via the deterministic model, not real sensor readings. The zone will be persisted via the API.
           </p>
         </div>
 

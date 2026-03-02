@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { NavBar } from '@/components/nav-bar'
-import { DisclaimerBanner } from '@/components/disclaimer-banner'
 import { FooterDisclaimer } from '@/components/footer-disclaimer'
 import { AQIBadge } from '@/components/aqi-badge'
 import { Zone, SimulationResult } from '@/lib/types'
@@ -237,7 +236,7 @@ export default function SimulationPage() {
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 rounded-full border-2 border-emerald-500/30 border-t-emerald-500 animate-spin" />
-          <p className="text-zinc-500 text-sm tracking-wide">Loading simulation…</p>
+          <p className="text-zinc-500 text-sm tracking-wide">Loading simulation...</p>
         </div>
       </div>
     )
@@ -248,7 +247,6 @@ export default function SimulationPage() {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col">
         <NavBar />
-        <DisclaimerBanner />
         <main className="flex-1 flex flex-col items-center justify-center gap-5 px-4 text-center">
           <div className="w-14 h-14 rounded-2xl bg-zinc-800/60 border border-zinc-700/50 flex items-center justify-center">
             <svg width="24" height="24" fill="none" stroke="#52525b" strokeWidth="1.8" viewBox="0 0 24 24">
@@ -300,7 +298,6 @@ export default function SimulationPage() {
       `}</style>
 
       <NavBar />
-      <DisclaimerBanner />
 
       <main className="body-font flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-10 md:py-14">
 
@@ -324,7 +321,7 @@ export default function SimulationPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* ── CONTROLS PANEL ── */}
+          {/* CONTROLS PANEL */}
           <div className="lg:col-span-1">
             <div
               style={{ animation: mounted ? 'fadeSlideUp 0.5s ease 80ms both' : 'none' }}
@@ -337,7 +334,7 @@ export default function SimulationPage() {
               </div>
               <div className="h-px bg-zinc-800/60 mb-6" />
 
-              {/* Zone select — uses backend zones array */}
+              {/* Zone select => uses backend zones array */}
               <div className="mb-6">
                 <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-[0.15em] mb-2">Zone</label>
                 <div className="relative">
@@ -395,7 +392,7 @@ export default function SimulationPage() {
                   {isLoading ? (
                     <>
                       <div className="w-4 h-4 rounded-full border-2 border-zinc-900/40 border-t-zinc-950 animate-spin" />
-                      Simulating…
+                      Simulating...
                     </>
                   ) : (
                     <>
@@ -416,7 +413,7 @@ export default function SimulationPage() {
             </div>
           </div>
 
-          {/* ── RESULTS PANEL ── */}
+          {/* RESULTS PANEL */}
           <div className="lg:col-span-2">
             {result ? (
               <div
