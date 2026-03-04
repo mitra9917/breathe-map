@@ -164,6 +164,22 @@ function HowItWorksCard({ icon, color, title, desc }: { icon: string; color: str
 const aqiColor = (v: number) =>
   v <= 50 ? '#34d399' : v <= 100 ? '#fbbf24' : v <= 150 ? '#f97316' : '#f87171'
 
+function isSimulationResultPayload(value: unknown): value is SimulationResult {
+  if (!value || typeof value !== 'object') return false
+  const v = value as Record<string, unknown>
+  return (
+    typeof v.scenario_id === 'string' &&
+    typeof v.zone_id === 'string' &&
+    typeof v.before_aqi === 'number' &&
+    typeof v.after_aqi === 'number' &&
+    typeof v.delta === 'number' &&
+    typeof v.delta_percentage === 'number' &&
+    typeof v.explanation === 'string' &&
+    typeof v.recommendation === 'string' &&
+    typeof v.timestamp === 'string'
+  )
+}
+
 export default function SimulationPage() {
   const { currentCityId } = useCity()
   const [zones, setZones] = useState<Zone[]>([])
@@ -180,6 +196,9 @@ export default function SimulationPage() {
     const loadZones = async () => {
       try {
         const response = await fetch(`/api/zones?cityId=${currentCityId}`, { cache: 'no-store' })
+        if (!response.ok) {
+          throw new Error(`Failed to load zones (${response.status})`)
+        }
         const data = await response.json()
         const loadedZones = (data.zones ?? []) as Zone[]
         setZones(loadedZones)
@@ -214,10 +233,26 @@ export default function SimulationPage() {
         }),
       })
       const data = await response.json()
+      if (!response.ok) {
+        const message =
+          (data && typeof data.error === 'string' && data.error) ||
+          (data && typeof data.details === 'string' && data.details) ||
+          `Simulation failed (${response.status})`
+        throw new Error(message)
+      }
+
+      if (!isSimulationResultPayload(data)) {
+        throw new Error('Invalid simulation response payload')
+      }
+
       setResult(data)
     } catch (error) {
       console.error('Simulation error:', error)
-      toastError(ErrorCodes.SIMULATION_RUN_FAILED.message, ErrorCodes.SIMULATION_RUN_FAILED.code)
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : ErrorCodes.SIMULATION_RUN_FAILED.message
+      toastError(message, ErrorCodes.SIMULATION_RUN_FAILED.code)
     } finally {
       setIsLoading(false)
     }

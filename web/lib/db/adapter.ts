@@ -1,6 +1,7 @@
 import { AQIEstimate, DatabaseAdapter, Zone } from '../types'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { predictZoneAQI } from '@/lib/ml/inference'
+import { getFallbackAQIPrediction } from '@/lib/ml/fallback'
 
 function toZone(row: any): Zone {
   const trafficDensity = Number(row.traffic_density)
@@ -22,7 +23,13 @@ function toZone(row: any): Zone {
 }
 
 async function estimateAndPersist(zone: Zone): Promise<AQIEstimate> {
-  const prediction = predictZoneAQI(zone)
+  let prediction
+  try {
+    prediction = predictZoneAQI(zone)
+  } catch (error) {
+    console.error(`Primary ML inference failed for zone ${zone.id}, using fallback formula:`, error)
+    prediction = getFallbackAQIPrediction(zone)
+  }
   const estimatedAQI = Math.round(prediction.estimated_aqi)
   const featureContributions = {
     ...prediction.feature_contributions,
