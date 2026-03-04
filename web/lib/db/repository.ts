@@ -22,7 +22,28 @@ export async function storeAQIEstimate(zone: Zone): Promise<AQIEstimate> {
 }
 
 export async function getLatestAQIForZone(zone: Zone): Promise<AQIEstimate> {
-  return db.aqi.estimate(zone)
+  try {
+    return await db.aqi.estimate(zone)
+  } catch (error) {
+    console.error(`AQI estimation failed for zone ${zone.id}:`, error)
+    try {
+      const historical = await db.aqi.getHistorical(zone.id)
+      if (historical.length > 0) {
+        return historical[0]
+      }
+    } catch (historyError) {
+      console.error(`AQI history fallback failed for zone ${zone.id}:`, historyError)
+    }
+
+    return {
+      zone_id: zone.id,
+      estimated_aqi: 0,
+      category: 'good',
+      feature_contributions: { traffic: 0, population: 0, road_network: 0, land_use: 0 },
+      assumptions: 'Fallback estimate due to inference error for this zone.',
+      timestamp: new Date().toISOString(),
+    }
+  }
 }
 
 export async function getLatestAQIForZones(zones: Zone[]): Promise<Map<string, AQIEstimate>> {

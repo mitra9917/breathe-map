@@ -16,8 +16,10 @@ type InferenceOutput = {
 }
 
 function deriveAmbientFeatures(zone: Zone) {
-  const temperature = 28 + zone.traffic_density * 0.08
-  const humidity = Math.max(30, Math.min(90, 70 - zone.traffic_density * 0.2 + zone.population_density * 0.1))
+  const traffic = Number.isFinite(zone.traffic_density) ? zone.traffic_density : 0
+  const population = Number.isFinite(zone.population_density) ? zone.population_density : 0
+  const temperature = 28 + traffic * 0.08
+  const humidity = Math.max(30, Math.min(90, 70 - traffic * 0.2 + population * 0.1))
   const timeOfDay = 12
   return { temperature, humidity, timeOfDay }
 }
@@ -26,9 +28,9 @@ export function predictZoneAQI(zone: Zone): InferenceOutput {
   const inferScript = path.join(process.cwd(), 'lib', 'ml', 'infer.py')
   const ambient = deriveAmbientFeatures(zone)
   const payload = {
-    trafficDensity: zone.traffic_density,
-    populationDensity: zone.population_density,
-    roadLength: zone.road_length,
+    trafficDensity: Number.isFinite(zone.traffic_density) ? zone.traffic_density : 0,
+    populationDensity: Number.isFinite(zone.population_density) ? zone.population_density : 0,
+    roadLength: Number.isFinite(zone.road_length) ? zone.road_length : 0,
     temperature: ambient.temperature,
     humidity: ambient.humidity,
     timeOfDay: ambient.timeOfDay,
@@ -51,4 +53,3 @@ export function predictZoneAQI(zone: Zone): InferenceOutput {
   }
   return parsed
 }
-

@@ -18,6 +18,12 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error('Correlation analysis error:', error)
-    return NextResponse.json({ error: 'Failed to generate correlations' }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Failed to generate correlations',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    )
   }
 }

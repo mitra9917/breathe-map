@@ -3,13 +3,17 @@ import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { predictZoneAQI } from '@/lib/ml/inference'
 
 function toZone(row: any): Zone {
+  const trafficDensity = Number(row.traffic_density)
+  const populationDensity = Number(row.population_density)
+  const roadLength = Number(row.road_length)
+
   return {
     id: row.id,
     name: row.name,
     land_use_type: row.land_use_type,
-    traffic_density: row.traffic_density,
-    population_density: row.population_density,
-    road_length: Number(row.road_length),
+    traffic_density: Number.isFinite(trafficDensity) ? trafficDensity : 0,
+    population_density: Number.isFinite(populationDensity) ? populationDensity : 0,
+    road_length: Number.isFinite(roadLength) ? roadLength : 0,
     notes: row.notes ?? '',
     city_id: row.city_id ?? 'default-city',
     geometry: row.geometry ?? null,

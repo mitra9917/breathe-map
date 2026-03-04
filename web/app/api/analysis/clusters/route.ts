@@ -33,7 +33,10 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Clustering analysis error:', error)
     return NextResponse.json(
-      { error: 'Failed to generate clusters' },
+      {
+        error: 'Failed to generate clusters',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
       { status: 500 }
     )
   }
