@@ -4,6 +4,12 @@ import { SimulationResult } from '@/lib/types'
 import { getZoneById } from '@/lib/db/repository'
 import { predictZoneAQI } from '@/lib/ml/inference'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getFallbackAQIPrediction } from '@/lib/ml/fallback'
+
+function toFiniteNumber(value: unknown, fallback = 0): number {
+  const n = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(n) ? n : fallback
+}
 
 /**
  * POST /api/simulation/run
@@ -75,8 +81,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const baselinePrediction = predictZoneAQI(zone)
-    const beforeAQI = Math.round(baselinePrediction.estimated_aqi)
+    let baselinePrediction
+    try {
+      baselinePrediction = predictZoneAQI(zone)
+    } catch (error) {
+      console.error(`Simulation baseline inference failed for zone ${zone.id}, using fallback:`, error)
+      baselinePrediction = getFallbackAQIPrediction(zone)
+    }
+    const beforeAQI = Math.max(0, Math.min(500, Math.round(toFiniteNumber(baselinePrediction.estimated_aqi, 0))))
 
     const trafficFactor = (1 - vehicle_reduction_percentage / 100) * (1 - traffic_rerouting_factor * 0.35)
     const adjustedTraffic = Math.max(0, Math.round(zone.traffic_density * trafficFactor))
@@ -88,11 +100,19 @@ export async function POST(request: NextRequest) {
       road_length: Math.max(0, adjustedRoadLength),
     }
 
-    const projectedPrediction = predictZoneAQI(projectedZone)
+    let projectedPrediction
+    try {
+      projectedPrediction = predictZoneAQI(projectedZone)
+    } catch (error) {
+      console.error(`Simulation projected inference failed for zone ${zone.id}, using fallback:`, error)
+      projectedPrediction = getFallbackAQIPrediction(projectedZone)
+    }
     const greeningReduction = Math.round(green_cover_increase * 0.6)
-    const afterAQI = Math.max(0, Math.round(projectedPrediction.estimated_aqi) - greeningReduction)
-    const delta = beforeAQI - afterAQI
-    const deltaPercentage = beforeAQI > 0 ? (delta / beforeAQI) * 100 : 0
+    const projectedAqi = Math.max(0, Math.min(500, Math.round(toFiniteNumber(projectedPrediction.estimated_aqi, beforeAQI))))
+    const afterAQI = Math.max(0, projectedAqi - greeningReduction)
+    const delta = toFiniteNumber(beforeAQI - afterAQI, 0)
+    const deltaPercentageRaw = beforeAQI > 0 ? (delta / beforeAQI) * 100 : 0
+    const deltaPercentage = toFiniteNumber(deltaPercentageRaw, 0)
 
     // Generate explanation
     const factors = []
@@ -176,6 +196,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result)
   } catch (error) {
     console.error('Simulation error:', error)
-    return NextResponse.json({ error: 'Failed to run simulation' }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Failed to run simulation',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    )
   }
 }
