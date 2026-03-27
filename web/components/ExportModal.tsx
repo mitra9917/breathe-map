@@ -267,7 +267,7 @@ async function exportPDF(report: SummaryReport) {
 
     autoTable(doc, {
         startY: 52,
-        head: [['Zone Name', 'Land Use', 'Traffic', 'Population', 'Road Length', 'Est. AQI', 'Category']],
+        head: [['Zone Name', 'Land Use', 'Traffic', 'Population', 'Road Length', 'Estimated AQI', 'Category']],
         body: tableData,
         styles: {
             fontSize: 8,
